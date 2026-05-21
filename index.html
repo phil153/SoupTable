@@ -91,9 +91,26 @@
             
             if (!response.ok) throw new Error('Worker Proxy Error');
             const result = await response.json();
+            //add alert
+            try {
+            const response = await fetch(workerUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ prompt: prompt }),
+            });
             
-            // 4. 解析 Worker 回傳的 Google Imagen 3 標準 Base64 格式
-            if (result.generatedImages?.[0]?.image?.imageBytes) {
+            const result = await response.json(); // 👈 直接解析，不要提早 throw
+            
+            // 🚨 新增：如果 Google 說不行，直接把錯誤訊息彈出來看！
+            if (!response.ok) {
+                // 將後端回傳的錯誤物件轉成文字顯示
+                const errorMsg = JSON.stringify(result, null, 2);
+                alert("抓到了！Google 拒絕的原因是：\n" + errorMsg);
+                throw new Error('API 回傳錯誤');
+            }
+            
+            // 4. 正常情況：解析圖片 Base64
+            if (result.generatedImages && result.generatedImages[0]?.image?.imageBytes) {
               const base64Bytes = result.generatedImages[0].image.imageBytes;
               return `data:image/jpeg;base64,${base64Bytes}`;
             }
